@@ -1,5 +1,5 @@
 <?php
-
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ModuloController;
 use App\Http\Controllers\UsuarioController;
@@ -140,15 +140,15 @@ Route::middleware(['auth', 'role:administrador'])
 |--------------------------------------------------------------------------
 */
 
+use App\Http\Controllers\AnalistaController;
+
 Route::middleware(['auth', 'role:analista'])
     ->prefix('analista')
     ->name('analista.')
     ->group(function () {
 
-        Route::get('/dashboard', function () {
-            return view('analista.dashboard');
-        })->name('dashboard');
-
+        Route::get('/dashboard', [AnalistaController::class, 'index'])
+            ->name('dashboard');
         /*
         |--------------------------------------------------------------------------
         | Limpieza de datos
@@ -210,7 +210,128 @@ Route::middleware(['auth', 'role:gerente'])
     ->group(function () {
 
         Route::get('/dashboard', function () {
-            return view('gerente.dashboard');
+
+            // =========================
+            // INDICADORES PRINCIPALES
+            // =========================
+
+            $ventasTotales = DB::table('ventas')->sum('total');
+
+            $productoTop = DB::table('ventas')
+                ->select('producto', DB::raw('SUM(cantidad) as total'))
+                ->groupBy('producto')
+                ->orderByDesc('total')
+                ->first();
+
+            $regionTop = DB::table('ventas')
+                ->select('region', DB::raw('SUM(total) as total'))
+                ->groupBy('region')
+                ->orderByDesc('total')
+                ->first();
+
+            // =========================
+            // TENDENCIA COMERCIAL
+            // =========================
+
+            $ventasPorMes = DB::table('ventas')
+                ->selectRaw("strftime('%Y-%m', fecha) as mes, SUM(total) as total")
+                ->groupBy('mes')
+                ->orderBy('mes')
+                ->get();
+
+            // =========================
+            // PROMEDIO MÓVIL
+            // =========================
+
+            $historial = $ventasPorMes->pluck('total')->toArray();
+
+            $promedioMovil = count($historial) >= 3
+                ? array_sum(array_slice($historial, -3)) / 3
+                : 0;
+
+            // =========================
+            // PRODUCTOS CON BAJA ROTACIÓN
+            // =========================
+
+            $bajaRotacion = DB::table('ventas')
+                ->select('producto', DB::raw('SUM(cantidad) as total'))
+                ->groupBy('producto')
+                ->having('total', '>', 0)
+                ->orderBy('total', 'asc')
+                ->limit(3)
+                ->get();
+
+            // =========================
+            // MES CON MAYORES VENTAS
+            // =========================
+
+            $mejorMes = DB::table('ventas')
+                ->selectRaw("strftime('%Y-%m', fecha) as mes, SUM(total) as total")
+                ->groupBy('mes')
+                ->orderByDesc('total')
+                ->first();
+
+            // =========================
+            // PROPUESTAS DINÁMICAS
+            // =========================
+
+            $propuestas = [
+
+                [
+                    'indicador' => 'Alta demanda',
+                    'interpretacion' =>
+                        'El producto "' .
+                        ($productoTop->producto ?? 'Sin datos') .
+                        '" presenta la mayor demanda registrada.',
+
+                    'decision' =>
+                        'Reforzar inventario y asegurar disponibilidad.'
+                ],
+
+                [
+                    'indicador' => 'Baja rotación',
+                    'interpretacion' =>
+                        'Existen productos con baja salida comercial.',
+
+                    'decision' =>
+                        'Aplicar promociones o descuentos estratégicos.'
+                ],
+
+                [
+                    'indicador' => 'Pico de ventas',
+                    'interpretacion' =>
+                        'El periodo con mayores ventas fue ' .
+                        ($mejorMes->mes ?? 'Sin datos') . '.',
+
+                    'decision' =>
+                        'Planificar existencias antes de temporadas altas.'
+                ]
+            ];
+
+            return view('gerente.dashboard', [
+
+                // Tarjetas
+                'ventasTotales' => $ventasTotales,
+
+                'productoTop' => $productoTop->producto ?? 'Sin datos',
+
+                'regionTop' => $regionTop->region ?? 'Sin datos',
+
+                'promedioMovil' => $promedioMovil,
+
+                // Gráfica
+                'ventasPorMes' => $ventasPorMes,
+
+                // Propuestas
+                'propuestas' => $propuestas,
+
+                // Baja rotación
+                'bajaRotacion' => $bajaRotacion,
+
+                // Mejor mes
+                'mejorMes' => $mejorMes
+            ]);
+
         })->name('dashboard');
 
         /*
@@ -233,7 +354,7 @@ Route::middleware(['auth', 'role:gerente'])
 
         /*
         |--------------------------------------------------------------------------
-        | Propuestas de decisión
+        | Propuestas
         |--------------------------------------------------------------------------
         */
 

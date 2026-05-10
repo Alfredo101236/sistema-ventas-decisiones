@@ -9,43 +9,53 @@
 @section('content')
 
 <div class="cards-grid">
+
     <div class="card">
         <p class="card-label">Registros disponibles</p>
-        <h2>0</h2>
-        <span class="card-note">Sin datos importados</span>
+        <h2>{{ $totalRegistros }}</h2>
+        <span class="card-note">Ventas importadas</span>
     </div>
 
     <div class="card">
-        <p class="card-label">Registros corregidos</p>
-        <h2>0</h2>
-        <span class="card-note">Sin proceso ejecutado</span>
+        <p class="card-label">Registros válidos</p>
+        <h2>{{ $registrosValidos }}</h2>
+        <span class="card-note">Listos para análisis</span>
     </div>
 
     <div class="card">
-        <p class="card-label">Consultas preparadas</p>
-        <h2>6</h2>
-        <span class="card-note success">Análisis SQL</span>
+        <p class="card-label">Observaciones</p>
+        <h2>{{ $registrosObservaciones }}</h2>
+        <span class="card-note">Datos con inconsistencias</span>
     </div>
 
     <div class="card">
         <p class="card-label">Estado del análisis</p>
-        <h2>En espera</h2>
-        <span class="card-note warning">Requiere datos</span>
+        <h2>{{ $totalRegistros > 0 ? 'Listo' : 'En espera' }}</h2>
+        <span class="card-note">
+            {{ $totalRegistros > 0 ? 'Datos disponibles' : 'Requiere datos' }}
+        </span>
     </div>
+
 </div>
 
 <div class="dashboard-grid">
+
+    <!-- CALIDAD DE DATOS -->
     <div class="panel large-panel">
+
         <div class="panel-header">
             <h3>Calidad de los datos</h3>
-            <p>Resumen de registros válidos, corregidos y observaciones detectadas.</p>
+            <p>Resumen de registros válidos y observaciones detectadas.</p>
         </div>
 
-        <div class="chart-placeholder">
-            La gráfica se mostrará después de procesar el archivo de ventas
+        <!-- GRÁFICA -->
+        <div style="max-width: 420px; margin: auto;">
+            <canvas id="calidadChart"></canvas>
         </div>
+
     </div>
 
+    <!-- CONSULTAS -->
     <div class="panel">
         <div class="panel-header">
             <h3>Consultas de análisis</h3>
@@ -60,10 +70,11 @@
         </div>
     </div>
 
+    <!-- VALIDACIONES -->
     <div class="panel">
         <div class="panel-header">
             <h3>Validaciones requeridas</h3>
-            <p>Aspectos que se revisarán durante la limpieza.</p>
+            <p>Aspectos detectados en la calidad de datos.</p>
         </div>
 
         <div class="status-list">
@@ -72,9 +83,13 @@
             <div><span class="dot warning"></span> Totales inconsistentes</div>
         </div>
     </div>
+
 </div>
 
+
+<!-- FLUJO -->
 <div class="panel">
+
     <div class="panel-header">
         <h3>Flujo de análisis</h3>
         <p>Proceso utilizado para transformar los datos en información útil.</p>
@@ -88,24 +103,68 @@
                 <th>Resultado</th>
             </tr>
         </thead>
+
         <tbody>
             <tr>
                 <td>Preparación</td>
                 <td>Revisión de registros cargados</td>
                 <td>Identificación de inconsistencias</td>
             </tr>
+
             <tr>
                 <td>Limpieza</td>
-                <td>Validación de fechas, cantidades y totales</td>
-                <td>Datos listos para consulta</td>
+                <td>Validación de campos clave</td>
+                <td>Datos listos para análisis</td>
             </tr>
+
             <tr>
                 <td>Análisis</td>
-                <td>Aplicación de consultas SQL y gráficas</td>
-                <td>Identificación de patrones de venta</td>
+                <td>Aplicación de consultas SQL</td>
+                <td>Patrones de ventas detectados</td>
             </tr>
         </tbody>
+
     </table>
+
 </div>
+
+<!-- GRÁFICA -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const canvas = document.getElementById('calidadChart');
+
+if (canvas) {
+    const ctx = canvas.getContext('2d');
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Registros válidos', 'Observaciones'],
+            datasets: [{
+                data: [
+                    {{ $registrosValidos }},
+                    {{ $registrosObservaciones }}
+                ],
+                backgroundColor: [
+                    '#2ecc71',
+                    '#e74c3c'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
 @endsection

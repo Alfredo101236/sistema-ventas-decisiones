@@ -1,11 +1,3 @@
-@extends('layouts.panel')
-
-@section('title', $titulo ?? 'Módulo del sistema')
-@section('page-title', $titulo ?? 'Módulo del sistema')
-@section('page-subtitle', $subtitulo ?? 'Sección del sistema de análisis de ventas')
-
-@section('content')
-
 <div class="cards-grid">
     @foreach($indicadores ?? [] as $indicador)
         <div class="card">
@@ -22,7 +14,7 @@
     <div class="panel large-panel">
         <div class="panel-header">
             <h3>{{ $panelTitulo ?? 'Información del módulo' }}</h3>
-            <p>{{ $panelDescripcion ?? 'Esta sección mostrará información relacionada con el módulo seleccionado.' }}</p>
+            <p>{{ $panelDescripcion ?? '' }}</p>
         </div>
 
         <div class="quick-grid">
@@ -36,11 +28,7 @@
     </div>
 
     <div class="panel">
-        <div class="panel-header">
-            <h3>Estado del módulo</h3>
-            <p>Condición actual de esta sección.</p>
-        </div>
-
+        <h3>Estado del módulo</h3>
         <div class="status-list">
             @foreach($estados ?? [] as $estado)
                 <div>
@@ -52,22 +40,13 @@
     </div>
 
     <div class="panel">
-        <div class="panel-header">
-            <h3>Uso dentro del sistema</h3>
-            <p>{{ $uso ?? 'Este módulo forma parte del flujo principal de análisis y toma de decisiones.' }}</p>
-        </div>
-
-        <div class="prediction-box">
-            {{ $mensaje ?? 'Módulo disponible' }}
-        </div>
+        <h3>Uso del sistema</h3>
+        <p>{{ $uso ?? '' }}</p>
     </div>
 </div>
 
 <div class="panel">
-    <div class="panel-header">
-        <h3>{{ $tablaTitulo ?? 'Resumen del módulo' }}</h3>
-        <p>{{ $tablaDescripcion ?? 'Información general de la sección seleccionada.' }}</p>
-    </div>
+    <h3>{{ $tablaTitulo ?? 'Resumen' }}</h3>
 
     <table class="data-table">
         <thead>
@@ -88,5 +67,3 @@
         </tbody>
     </table>
 </div>
-
-@endsection

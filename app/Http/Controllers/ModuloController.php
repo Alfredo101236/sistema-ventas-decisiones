@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\DB;
+
 
 class ModuloController extends Controller
 {
@@ -143,137 +145,482 @@ class ModuloController extends Controller
         ]);
     }
 
-    public function analisis()
-    {
-        return $this->vista([
+        public function analisis()
+        {
+        // Ventas acumuladas
+        $ventasTotales = DB::table('ventas')->sum('total') ?? 0;
+
+        // Producto principal
+        $productoTop = DB::table('ventas')
+            ->select('producto', DB::raw('SUM(cantidad) as total'))
+            ->groupBy('producto')
+            ->orderByDesc('total')
+            ->first();
+
+        // Categoría destacada
+        $categoriaTop = DB::table('ventas')
+            ->select('categoria', DB::raw('SUM(total) as ingreso'))
+            ->groupBy('categoria')
+            ->orderByDesc('ingreso')
+            ->first();
+
+        // Región destacada
+        $regionTop = DB::table('ventas')
+            ->select('region', DB::raw('SUM(total) as ingreso'))
+            ->groupBy('region')
+            ->orderByDesc('ingreso')
+            ->first();
+
+        $ventasPorMes = DB::table('ventas')
+            ->select(DB::raw("strftime('%Y-%m', fecha) as mes"), DB::raw("SUM(total) as total"))
+            ->groupBy('mes')
+            ->orderBy('mes')
+            ->get();
+
+        $topProductos = DB::table('ventas')
+            ->select('producto', DB::raw('SUM(cantidad) as total'))
+            ->groupBy('producto')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        $ventasCategoria = DB::table('ventas')
+            ->select('categoria', DB::raw('SUM(total) as total'))
+            ->groupBy('categoria')
+            ->get();
+
+        $ventasRegion = DB::table('ventas')
+            ->select('region', DB::raw('SUM(total) as total'))
+            ->groupBy('region')
+            ->get();
+
+
+        $ventasPorMes = DB::table('ventas')
+            ->select(DB::raw("strftime('%Y-%m', fecha) as mes"), DB::raw("SUM(total) as total"))
+            ->groupBy('mes')
+            ->orderBy('mes')
+            ->get();
+
+        $topProductos = DB::table('ventas')
+            ->select('producto', DB::raw('SUM(cantidad) as total'))
+            ->groupBy('producto')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        $ventasCategoria = DB::table('ventas')
+            ->select('categoria', DB::raw('SUM(total) as total'))
+            ->groupBy('categoria')
+            ->get();
+
+        $ventasRegion = DB::table('ventas')
+            ->select('region', DB::raw('SUM(total) as total'))
+            ->groupBy('region')
+            ->get();
+
+        return view('modulos.analisis', [
             'titulo' => 'Análisis descriptivo',
             'subtitulo' => 'Interpretación del comportamiento histórico de ventas',
+
             'indicadores' => [
-                ['label' => 'Ventas acumuladas', 'valor' => '$0.00', 'nota' => 'Sin datos'],
-                ['label' => 'Producto principal', 'valor' => 'No disponible', 'nota' => 'Requiere análisis'],
-                ['label' => 'Categoría destacada', 'valor' => 'No disponible', 'nota' => 'Requiere datos'],
-                ['label' => 'Región destacada', 'valor' => 'No disponible', 'nota' => 'Requiere datos'],
+            [
+                'label' => 'Ventas acumuladas',
+                'valor' => '$' . number_format($ventasTotales, 2),
+                'nota' => 'Ingresos totales'
             ],
-            'panelTitulo' => 'Indicadores descriptivos',
-            'panelDescripcion' => 'Se mostrarán ventas por periodo, productos, categorías y regiones.',
-            'acciones' => [
-                ['titulo' => 'Ventas por mes', 'descripcion' => 'Identificar tendencias por periodo.'],
-                ['titulo' => 'Productos más vendidos', 'descripcion' => 'Detectar artículos con mayor demanda.'],
-                ['titulo' => 'Ventas por categoría', 'descripcion' => 'Comparar ingresos por tipo de producto.'],
-                ['titulo' => 'Ventas por región', 'descripcion' => 'Evaluar desempeño comercial por zona.'],
+            [
+                'label' => 'Producto principal',
+                'valor' => $productoTop->producto ?? 'Sin datos',
+                'nota' => 'Mayor cantidad vendida'
             ],
-            'estados' => [
-                ['texto' => 'Indicadores definidos', 'tipo' => 'success'],
-                ['texto' => 'Resultados pendientes', 'tipo' => 'warning'],
+            [
+                'label' => 'Categoría destacada',
+                'valor' => $categoriaTop->categoria ?? 'Sin datos',
+                'nota' => 'Mayor ingreso'
             ],
-            'uso' => 'El análisis descriptivo permite comprender el comportamiento de ventas antes de tomar decisiones.',
-            'mensaje' => 'Análisis comercial',
-            'filas' => [
-                ['elemento' => 'Ventas por mes', 'descripcion' => 'Agrupación mensual de ingresos.', 'estado' => 'Pendiente'],
-                ['elemento' => 'Top productos', 'descripcion' => 'Productos con mayor cantidad vendida.', 'estado' => 'Pendiente'],
-                ['elemento' => 'Categorías', 'descripcion' => 'Ingresos por categoría.', 'estado' => 'Pendiente'],
+            [
+                'label' => 'Región destacada',
+                'valor' => $regionTop->region ?? 'Sin datos',
+                'nota' => 'Mejor desempeño'
             ],
-        ]);
-    }
+        ],
+
+        'panelTitulo' => 'Indicadores descriptivos',
+        'panelDescripcion' => 'Análisis basado en datos reales de ventas.',
+
+        'ventasPorMes' => $ventasPorMes,
+        'topProductos' => $topProductos,
+        'ventasCategoria' => $ventasCategoria,
+        'ventasRegion' => $ventasRegion,
+
+        'acciones' => [
+            ['titulo' => 'Ventas por mes', 'descripcion' => 'Identificar tendencias por periodo.'],
+            ['titulo' => 'Productos más vendidos', 'descripcion' => 'Detectar artículos con mayor demanda.'],
+            ['titulo' => 'Ventas por categoría', 'descripcion' => 'Comparar ingresos por tipo de producto.'],
+            ['titulo' => 'Ventas por región', 'descripcion' => 'Evaluar desempeño comercial por zona.'],
+        ],
+
+        'estados' => [
+            ['texto' => 'Datos cargados', 'tipo' => 'success'],
+            ['texto' => 'Análisis activo', 'tipo' => 'success'],
+        ],
+
+        'uso' => 'El análisis descriptivo permite comprender el comportamiento de ventas antes de tomar decisiones.',
+
+        'mensaje' => 'Análisis comercial',
+
+        'filas' => [
+            ['elemento' => 'Ventas por mes', 'descripcion' => 'Agrupación mensual de ingresos.', 'estado' => 'Activo'],
+            ['elemento' => 'Top productos', 'descripcion' => 'Productos con mayor cantidad vendida.', 'estado' => 'Activo'],
+            ['elemento' => 'Categorías', 'descripcion' => 'Ingresos por categoría.', 'estado' => 'Activo'],
+        ],
+    ]);
+}
+
+    
+
 
     public function consultas()
-    {
-        return $this->vista([
-            'titulo' => 'Consultas SQL',
-            'subtitulo' => 'Consultas utilizadas para obtener resultados del análisis',
-            'indicadores' => [
-                ['label' => 'Consultas definidas', 'valor' => '6', 'nota' => 'Consultas clave', 'tipo' => 'success'],
-                ['label' => 'Motor SQL', 'valor' => 'SQLite', 'nota' => 'Base activa'],
-                ['label' => 'Resultados', 'valor' => '0', 'nota' => 'Sin ejecutar'],
-                ['label' => 'Estado', 'valor' => 'Preparado', 'nota' => 'Listo para análisis', 'tipo' => 'success'],
-            ],
-            'panelTitulo' => 'Consultas principales',
-            'panelDescripcion' => 'Este módulo mostrará las consultas SQL y sus resultados.',
-            'acciones' => [
-                ['titulo' => 'Ventas por mes', 'descripcion' => 'Agrupar ventas por periodo mensual.'],
-                ['titulo' => 'Top 10 productos', 'descripcion' => 'Ordenar productos por cantidad vendida.'],
-                ['titulo' => 'Baja rotación', 'descripcion' => 'Identificar productos con menor movimiento.'],
-                ['titulo' => 'Comparación regional', 'descripcion' => 'Agrupar ventas por región.'],
-            ],
-            'estados' => [
-                ['texto' => 'Consultas estructuradas', 'tipo' => 'success'],
-                ['texto' => 'Resultados pendientes de datos', 'tipo' => 'warning'],
-            ],
-            'uso' => 'Las consultas SQL permitirán obtener resultados claros desde la base de datos.',
-            'mensaje' => 'SQL disponible',
-            'filas' => [
-                ['elemento' => 'Ventas por mes', 'descripcion' => 'SUM(total) agrupado por fecha.', 'estado' => 'Definida'],
-                ['elemento' => 'Productos más vendidos', 'descripcion' => 'Orden por cantidad total.', 'estado' => 'Definida'],
-                ['elemento' => 'Ventas por categoría', 'descripcion' => 'Ingresos agrupados por categoría.', 'estado' => 'Definida'],
-            ],
-        ]);
-    }
+{
+    $totalVentas = DB::table('ventas')->count();
+    $totalProductos = DB::table('ventas')->distinct()->count('producto');
+
+    
+
+    // Ventas por mes
+    $ventasPorMes = DB::table('ventas')
+        ->selectRaw("strftime('%Y-%m', fecha) as mes, SUM(total) as total")
+        ->groupBy('mes')
+        ->orderBy('mes')
+        ->get();
+
+    //  Top productos
+    $topProductos = DB::table('ventas')
+        ->select('producto', DB::raw('SUM(cantidad) as total'))
+        ->groupBy('producto')
+        ->orderByDesc('total')
+        ->limit(10)
+        ->get();
+
+    $bajaRotacion = DB::table('ventas')
+        ->select('producto', DB::raw('SUM(cantidad) as total'))
+        ->groupBy('producto')
+        ->having('total', '>', 0)
+        ->orderBy('total', 'asc')
+        ->limit(10)
+        ->get();
+
+
+    //  Región
+    $ventasRegion = DB::table('ventas')
+        ->select('region', DB::raw('SUM(total) as total'))
+        ->groupBy('region')
+        ->get();
+
+    return view('modulos.consultas_sql', [
+        'titulo' => 'Consultas SQL',
+        'subtitulo' => 'Consultas utilizadas para obtener resultados del análisis',
+
+        'indicadores' => [
+            ['label' => 'Consultas definidas', 'valor' => '6', 'nota' => 'Consultas clave', 'tipo' => 'success'],
+            ['label' => 'Motor SQL', 'valor' => 'SQLite', 'nota' => 'Base activa'],
+            ['label' => 'Registros', 'valor' => $totalVentas, 'nota' => 'Ventas en BD'],
+            ['label' => 'Estado', 'valor' => $totalVentas > 0 ? 'Preparado' : 'Sin datos', 'nota' => 'Listo para análisis', 'tipo' => $totalVentas > 0 ? 'success' : 'warning'],
+        ],
+
+        'panelTitulo' => 'Consultas principales',
+        'panelDescripcion' => 'Este módulo mostrará las consultas SQL y sus resultados.',
+
+        'acciones' => [
+            ['titulo' => 'Ventas por mes', 'descripcion' => 'Agrupar ventas por periodo mensual.'],
+            ['titulo' => 'Top 10 productos', 'descripcion' => 'Ordenar productos por cantidad vendida.'],
+            ['titulo' => 'Baja rotación', 'descripcion' => 'Identificar productos con menor movimiento.'],
+            ['titulo' => 'Comparación regional', 'descripcion' => 'Agrupar ventas por región.'],
+        ],
+
+        'estados' => [
+            ['texto' => 'Consultas estructuradas', 'tipo' => 'success'],
+            ['texto' => 'Resultados pendientes de datos', 'tipo' => 'warning'],
+        ],
+
+        'uso' => 'Las consultas SQL permitirán obtener resultados claros desde la base de datos.',
+
+        'filas' => [
+            ['elemento' => 'Ventas por mes', 'descripcion' => 'SUM(total) agrupado por fecha.', 'estado' => 'Definida'],
+            ['elemento' => 'Productos más vendidos', 'descripcion' => 'Orden por cantidad total.', 'estado' => 'Definida'],
+            ['elemento' => 'Ventas por categoría', 'descripcion' => 'Ingresos agrupados por categoría.', 'estado' => 'Definida'],
+        ],
+
+        
+    'ventasPorMes' => $ventasPorMes,
+    'topProductos' => $topProductos,
+    'bajaRotacion' => $bajaRotacion,
+    'ventasRegion' => $ventasRegion,
+    ]);
+}
+
+
+
+
+
 
     public function prediccion()
-    {
-        return $this->vista([
-            'titulo' => 'Predicción de ventas',
-            'subtitulo' => 'Estimación básica del comportamiento futuro de ventas',
-            'indicadores' => [
-                ['label' => 'Método', 'valor' => 'Promedio móvil', 'nota' => '3 meses'],
-                ['label' => 'Historial', 'valor' => 'No disponible', 'nota' => 'Requiere datos'],
-                ['label' => 'Proyección', 'valor' => '$0.00', 'nota' => 'Sin calcular'],
-                ['label' => 'Estado', 'valor' => 'En espera', 'nota' => 'Requiere análisis', 'tipo' => 'warning'],
-            ],
-            'panelTitulo' => 'Modelo predictivo básico',
-            'panelDescripcion' => 'Se utilizará promedio móvil para estimar ventas futuras con base en periodos anteriores.',
-            'acciones' => [
-                ['titulo' => 'Agrupar ventas mensuales', 'descripcion' => 'Preparar la serie histórica de ventas.'],
-                ['titulo' => 'Calcular promedio móvil', 'descripcion' => 'Usar los últimos tres meses como referencia.'],
-                ['titulo' => 'Mostrar proyección', 'descripcion' => 'Presentar una estimación del siguiente periodo.'],
-                ['titulo' => 'Interpretar resultado', 'descripcion' => 'Explicar el posible comportamiento comercial.'],
-            ],
-            'estados' => [
-                ['texto' => 'Método definido', 'tipo' => 'success'],
-                ['texto' => 'Historial pendiente de carga', 'tipo' => 'warning'],
-            ],
-            'uso' => 'La predicción ayuda a anticipar demanda y preparar decisiones de inventario o promoción.',
-            'mensaje' => 'Promedio móvil',
-            'filas' => [
-                ['elemento' => 'Serie mensual', 'descripcion' => 'Ventas agrupadas por mes.', 'estado' => 'Pendiente'],
-                ['elemento' => 'Promedio móvil', 'descripcion' => 'Cálculo con tres periodos anteriores.', 'estado' => 'Definido'],
-                ['elemento' => 'Proyección', 'descripcion' => 'Estimación del siguiente periodo.', 'estado' => 'Pendiente'],
-            ],
-        ]);
-    }
+{
+    $ventasPorMes = DB::table('ventas')
+        ->selectRaw("strftime('%Y-%m', fecha) as mes, SUM(total) as total")
+        ->groupBy('mes')
+        ->orderBy('mes')
+        ->get();
+
+    $historial = $ventasPorMes->pluck('total')->toArray();
+
+    $promedioMovil = count($historial) >= 3
+        ? array_sum(array_slice($historial, -3)) / 3
+        : 0;
+
+    return view('modulos.prediccion', [
+        'titulo' => 'Predicción de ventas',
+        'subtitulo' => 'Estimación básica del comportamiento futuro de ventas',
+
+        
+        'ventasPorMes' => $ventasPorMes,
+        'historial' => $historial,
+        'promedioMovil' => $promedioMovil,
+        'proyeccion' => $promedioMovil,
+
+        'indicadores' => [
+            ['label' => 'Método', 'valor' => 'Promedio móvil', 'nota' => '3 meses'],
+            ['label' => 'Historial', 'valor' => count($historial), 'nota' => 'Registros detectados'],
+            ['label' => 'Proyección', 'valor' => '$' . number_format($promedioMovil, 2), 'nota' => 'Estimación'],
+            ['label' => 'Estado', 'valor' => count($historial) >= 3 ? 'Activo' : 'En espera', 'nota' => 'Requiere análisis', 'tipo' => 'warning'],
+        ],
+
+        'panelTitulo' => 'Modelo predictivo básico',
+        'panelDescripcion' => 'Se utilizará promedio móvil para estimar ventas futuras con base en periodos anteriores.',
+
+        'acciones' => [
+            ['titulo' => 'Agrupar ventas mensuales', 'descripcion' => 'Preparar la serie histórica de ventas.'],
+            ['titulo' => 'Calcular promedio móvil', 'descripcion' => 'Usar los últimos tres meses como referencia.'],
+            ['titulo' => 'Mostrar proyección', 'descripcion' => 'Presentar una estimación del siguiente periodo.'],
+            ['titulo' => 'Interpretar resultado', 'descripcion' => 'Explicar el posible comportamiento comercial.'],
+        ],
+
+        'estados' => [
+            ['texto' => 'Método definido', 'tipo' => 'success'],
+            ['texto' => 'Historial cargado', 'tipo' => count($historial) ? 'success' : 'warning'],
+        ],
+
+        'uso' => 'La predicción ayuda a anticipar demanda y preparar decisiones de inventario o promoción.',
+
+        'mensaje' => 'Promedio móvil',
+
+        'filas' => [
+            ['elemento' => 'Serie mensual', 'descripcion' => 'Ventas agrupadas por mes.', 'estado' => 'Listo'],
+            ['elemento' => 'Promedio móvil', 'descripcion' => 'Cálculo con tres periodos anteriores.', 'estado' => 'Activo'],
+            ['elemento' => 'Proyección', 'descripcion' => 'Estimación del siguiente periodo.', 'estado' => 'Generado'],
+        ],
+    ]);
+}
 
     public function propuestas()
-    {
-        return $this->vista([
-            'titulo' => 'Propuestas de decisión',
-            'subtitulo' => 'Recomendaciones comerciales basadas en resultados del análisis',
-            'indicadores' => [
-                ['label' => 'Propuestas generadas', 'valor' => '0', 'nota' => 'Sin resultados'],
-                ['label' => 'Inventario', 'valor' => 'Pendiente', 'nota' => 'Requiere análisis'],
-                ['label' => 'Promociones', 'valor' => 'Pendiente', 'nota' => 'Requiere datos'],
-                ['label' => 'Precios', 'valor' => 'Pendiente', 'nota' => 'Requiere indicadores'],
+{$productoTop = DB::table('ventas')
+    ->select(
+        'producto',
+        DB::raw('SUM(cantidad) as total'),
+        DB::raw('SUM(total) as ingresos')
+    )
+    ->groupBy('producto')
+    ->orderByDesc('ingresos')
+    ->first();
+
+
+$productoBaja = DB::table('ventas')
+    ->select(
+        'producto',
+        DB::raw('SUM(cantidad) as total'),
+        DB::raw('SUM(total) as ingresos')
+    )
+    ->groupBy('producto')
+    ->orderBy('total')
+    ->first();
+
+
+$regionTop = DB::table('ventas')
+    ->select(
+        'region',
+        DB::raw('SUM(total) as ingreso')
+    )
+    ->groupBy('region')
+    ->orderByDesc('ingreso')
+    ->first();
+
+
+$mesTop = DB::table('ventas')
+    ->selectRaw("
+        strftime('%Y-%m', fecha) as mes,
+        SUM(total) as total
+    ")
+    ->groupBy('mes')
+    ->orderByDesc('total')
+    ->first();
+    $propuestas = [
+
+    [
+        'tipo' => 'Inventario',
+
+        'elemento' =>
+            $productoTop->producto ?? 'Sin datos',
+
+        'ingreso' =>
+            $productoTop->ingresos ?? 0,
+
+        'descripcion' =>
+            'Producto con mayor demanda registrada.',
+
+        'accion' =>
+            'Aumentar inventario y asegurar disponibilidad.',
+
+        'prioridad' => 'Alta'
+    ],
+
+    [
+        'tipo' => 'Promoción',
+
+        'elemento' =>
+            $productoBaja->producto ?? 'Sin datos',
+
+        'ingreso' =>
+            $productoBaja->ingresos ?? 0,
+
+        'descripcion' =>
+            'Producto con baja rotación comercial.',
+
+        'accion' =>
+            'Aplicar descuentos o promociones estratégicas.',
+
+        'prioridad' => 'Media'
+    ],
+
+    [
+        'tipo' => 'Región fuerte',
+
+        'elemento' =>
+            $regionTop->region ?? 'Sin datos',
+
+        'ingreso' =>
+            $regionTop->ingreso ?? 0,
+
+        'descripcion' =>
+            'Zona con mayor generación de ingresos.',
+
+        'accion' =>
+            'Reforzar campañas y distribución.',
+
+        'prioridad' => 'Alta'
+    ],
+
+    [
+        'tipo' => 'Temporada alta',
+
+        'elemento' =>
+            $mesTop->mes ?? 'Sin datos',
+
+        'ingreso' =>
+            $mesTop->total ?? 0,
+
+        'descripcion' =>
+            'Periodo con el mayor volumen de ventas.',
+
+        'accion' =>
+            'Preparar inventario anticipadamente.',
+
+        'prioridad' => 'Alta'
+    ],
+];
+    return view('modulos.propuestas', [
+
+        'titulo' => 'Propuestas de decisión',
+
+        'subtitulo' =>
+            'Recomendaciones comerciales basadas en resultados reales del análisis',
+
+        'indicadores' => [
+
+            [
+                'label' => 'Propuestas generadas',
+                'valor' => count($propuestas),
+                'nota' => 'Resultados automáticos',
+                'tipo' => 'success'
             ],
-            'panelTitulo' => 'Enfoque de recomendaciones',
-            'panelDescripcion' => 'Las propuestas se generarán a partir de productos destacados, baja rotación y tendencias.',
-            'acciones' => [
-                ['titulo' => 'Inventario', 'descripcion' => 'Aumentar disponibilidad de productos con alta demanda.'],
-                ['titulo' => 'Promociones', 'descripcion' => 'Aplicar descuentos a productos con baja rotación.'],
-                ['titulo' => 'Temporadas altas', 'descripcion' => 'Preparar existencias antes de periodos con mayor venta.'],
-                ['titulo' => 'Regiones fuertes', 'descripcion' => 'Reforzar distribución en zonas con mejor desempeño.'],
+
+            [
+                'label' => 'Inventario',
+                'valor' => 'Optimización',
+                'nota' => 'Basado en demanda',
+                'tipo' => 'success'
             ],
-            'estados' => [
-                ['texto' => 'Criterios definidos', 'tipo' => 'success'],
-                ['texto' => 'Recomendaciones pendientes', 'tipo' => 'warning'],
+
+            [
+                'label' => 'Promociones',
+                'valor' => 'Disponibles',
+                'nota' => 'Productos lentos',
+                'tipo' => 'warning'
             ],
-            'uso' => 'Este módulo convierte los resultados del análisis en acciones comerciales concretas.',
-            'mensaje' => 'Apoyo a decisiones',
-            'filas' => [
-                ['elemento' => 'Alta demanda', 'descripcion' => 'Producto con mayor venta.', 'estado' => 'Aumentar inventario'],
-                ['elemento' => 'Baja rotación', 'descripcion' => 'Producto con poca salida.', 'estado' => 'Aplicar promoción'],
-                ['elemento' => 'Pico de ventas', 'descripcion' => 'Periodo con mayor consumo.', 'estado' => 'Planificar existencias'],
+
+            [
+                'label' => 'Regiones',
+                'valor' => $regionTop->region ?? 'Sin datos',
+                'nota' => 'Mayor rendimiento',
+                'tipo' => 'success'
             ],
-        ]);
-    }
+        ],
+
+        'acciones' => [
+
+            [
+                'titulo' => 'Inventario',
+                'descripcion' =>
+                    'Aumentar disponibilidad de productos con alta demanda.'
+            ],
+
+            [
+                'titulo' => 'Promociones',
+                'descripcion' =>
+                    'Aplicar descuentos a productos con baja rotación.'
+            ],
+
+            [
+                'titulo' => 'Temporadas altas',
+                'descripcion' =>
+                    'Preparar existencias antes de periodos con mayor venta.'
+            ],
+
+            [
+                'titulo' => 'Regiones fuertes',
+                'descripcion' =>
+                    'Reforzar distribución en zonas con mejor desempeño.'
+            ],
+        ],
+
+        'estados' => [
+
+            [
+                'texto' => 'Propuestas generadas automáticamente',
+                'tipo' => 'success'
+            ],
+
+            [
+                'texto' => 'Análisis comercial activo',
+                'tipo' => 'success'
+            ],
+        ],
+
+        'uso' =>
+            'Este módulo convierte los resultados del análisis en acciones comerciales concretas.',
+
+        'propuestas' => $propuestas
+    ]);
+}
 
     public function reportes()
     {
